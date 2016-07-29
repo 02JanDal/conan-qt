@@ -1,0 +1,121 @@
+from conans import ConanFile
+import os
+import shutil
+
+channel = os.getenv("CONAN_CHANNEL", "testing")
+username = os.getenv("CONAN_USERNAME", "jandal")
+
+class @!name!@Conan(ConanFile):
+    name = '@!name!@'
+    version = '@!version!@'
+    url = '@!meta.url!@'
+    settings = 'os', 'compiler', 'arch', 'build_type'
+    options = {
+        'shared': [True, False]
+        , 'cxxstd': ['auto', 'c++11', 'c++14', 'c++1z']
+    }
+    default_options = '''
+shared=True
+cxxstd=auto
+'''
+    license = '@!meta.license!@'
+    author = '@!meta.author!@'
+
+    @staticmethod
+    def __parse_simple_qmake(file):
+        with open(file) as f:
+            split_lines = [line.split(' ') for line in f.readlines()]
+            return {line[0]: line[2:] for line in split_lines if line[1] == '='}
+
+    def requirements(self):
+        self.requires.add('@!src!@/@!version!@@{}/{}'.format(username, channel), private=True)
+        <!--(for dep in default('selfdependencies', []))-->
+        self.requires('@!dep!@/@!version!@@{}/{}'.format(username, channel))
+        <!--(end)-->
+
+    def configure(self):
+        self.options['@!src!@'].shared = self.options.shared
+        self.options['@!src!@'].cxxstd = self.options.cxxstd
+
+    def imports(self):
+        self.output.info('imports')
+        shutil.rmtree('tmp', ignore_errors=True)
+        os.mkdir('tmp')
+        self.copy('*@!name!@*.prl', src='lib', dst='tmp/lib', root_package='@!src!@')
+        self.copy('*@!name!@*.dylib', src='lib', dst='tmp/lib', root_package='@!src!@')
+        self.copy('*@!name!@*.a', src='lib', dst='tmp/lib', root_package='@!src!@')
+        self.copy('*@!name!@*.so*', src='lib', dst='tmp/lib', root_package='@!src!@')
+        self.copy('*@!name!@*.dll', src='bin', dst='tmp/bin', root_package='@!src!@')
+        <!--(for cmakedir in default('cmakedirs', [name]))-->
+        self.copy('*.cmake', src='lib/cmake/@!cmakedir!@', dst='tmp/lib/cmake/@!cmakedir!@', root_package='@!src!@')
+        <!--(end)-->
+        self.copy('@!name!@.pc', src='lib/pkgconfig', dst='tmp/lib/pkgconfig', root_package='@!src!@')
+        <!--(for incldir in default('includedirs', [name.replace('Qt5', 'Qt')]))-->
+        self.copy('*', src='include/@!incldir!@', dst='tmp/include/@!incldir!@', root_package='@!src!@')
+        <!--(end)-->
+        <!--(for other in default('otherdirs', []))-->
+        self.copy('*', src='@!other!@', dst='tmp/@!other!@', root_package='@!src!@')
+        <!--(end)-->
+        self.copy('*', src='mkspecs/modules', dst='tmp/mkspecs/modules', root_package='@!src!@')
+        self.copy('*', src='mkspecs/modules-inst', dst='tmp/mkspecs/modules-inst', root_package='@!src!@')
+        self.copy('*', src='plugins', dst='tmp/plugins')
+
+        extension = '.exe' if self.settings.os == 'Windows' else ''
+        <!--(for exe in default('executables', []))-->
+        self.copy('@!exe!@' + extension, src='bin', dst='tmp/bin', root_package='@!src!@')
+        <!--(end)-->
+
+    def build(self):
+        self.output.info('build')
+        shutil.copytree('tmp', 'pkg')
+        <!--(if exists('mkspecname'))-->
+        self.output.info(os.getcwd() + '/pkg/mkspecs/modules')
+        for file in os.listdir('pkg/mkspecs/modules'):
+            if not file.endswith('qt_lib_@!mkspecname!@.pri'):
+                os.remove('pkg/mkspecs/modules/' + file)
+        for file in os.listdir('pkg/mkspecs/modules-inst'):
+            if not file.endswith('qt_lib_@!mkspecname!@.pri'):
+                os.remove('pkg/mkspecs/modules-inst/' + file)
+        module_pri = self.__parse_simple_qmake('pkg/mkspecs/modules-inst/qt_lib_@!mkspecname!@.pri')
+        if 'QT.@!mkspecname!@.plugin_types' in module_pri:
+            for plugin_type in module_pri['QT.@!mkspecname!@.plugin_types']:
+                for plugin_type_dir in os.listdir('pkg/plugins'):
+                    if plugin_type_dir != plugin_type:
+                        shutil.rmtree('pkg/plugins/' + plugin_type_dir)
+        <!--(else)-->
+        shutil.rmtree('pkg/mkspecs/modules')
+        shutil.rmtree('pkg/mkspecs/modules-inst')
+        <!--(end)-->
+
+    def package(self):
+        self.output.info('package')
+        self.copy('*', src='pkg', dst='.', keep_path=True)
+
+    def package_info(self):
+        self.output.info('package_info')
+        def is_internal_linkflag(flag):
+            return flag.startswith('-lQt5') or (flag.startswith('-L') and flag.endswith('lib') and 'Qt5' in flag)
+
+        <!--(for incldir in default('includedirs', [name.replace('Qt5', 'Qt')]))-->
+        self.cpp_info.includedirs.append('@!incldir!@')
+        <!--(end)-->
+        <!--(if not default('executables', None) is None)-->
+        self.cpp_info.bindirs.append('bin')
+        <!--(end)-->
+
+        <!--(for lib in default('prllibs', [name]))-->
+        #@!lib!@_prl = self.__parse_simple_qmake(self.package_folder + '/lib/@!lib!@.prl')
+        @!lib!@_prl = {}
+        if 'QMAKE_PRL_TARGET' in @!lib!@_prl:
+            self.cpp_info.libs.append(@!lib!@_prl['QMAKE_PRL_TARGET'])
+        if 'QMAKE_PRL_DEFINES' in @!lib!@_prl:
+            self.cpp_info.defines += @!lib!@_prl['QMAKE_PRL_DEFINES'].split(' ')
+        if 'QMAKE_PRL_CFLAGS' in @!lib!@_prl:
+            self.cpp_info.defines += @!lib!@_prl['QMAKE_PRL_CFLAGS'].split(' ')
+        if 'QMAKE_PRL_CXXFLAGS' in @!lib!@_prl:
+            self.cpp_info.defines += @!lib!@_prl['QMAKE_PRL_CXXFLAGS'].split(' ')
+        if 'QMAKE_PRL_LIBS' in @!lib!@_prl:
+            linkflags = [l for l in @!lib!@_prl['QMAKE_PRL_LIBS'] if not is_internal_linkflag(l)].split(' ')
+            self.cpp_info.sharedlinkflags += linkflags
+            self.cpp_info.exelinkflags += linkflags
+        <!--(end)-->

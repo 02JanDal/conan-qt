@@ -1,0 +1,13 @@
+cmake_minimum_required(VERSION 3.0)
+
+project(@!name!@Tests)
+
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+conan_basic_setup()
+
+file(GLOB files *.cpp)
+foreach(file ${files})
+    get_filename_component(name ${file} NAME_WE)
+    add_executable(tst_${name} ${file})
+    target_link_libraries(tst_${name} ${CONAN_LIBS})
+endforeach()

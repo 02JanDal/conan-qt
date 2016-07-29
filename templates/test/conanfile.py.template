@@ -1,0 +1,26 @@
+from conans import ConanFile, CMake
+import os
+
+channel = os.getenv("CONAN_CHANNEL", "testing")
+username = os.getenv("CONAN_USERNAME", "jandal")
+
+class @!name!@TestConan(ConanFile):
+    name = '@!name!@Test'
+    version = '@!version!@'
+    settings = 'os', 'compiler', 'build_type', 'arch'
+    requires = '@!name!@/@!version!@@{}/{}'.format(username, channel)
+    generators = 'cmake', 'qmake'
+
+    def build(self):
+        cmake = CMake(self.settings)
+        self.run('cmake {} {}'.format(self.conanfile_directory, cmake.command_line))
+        self.run('cmake --build . {}'.format(cmake.build_config))
+
+    def imports(self):
+        self.copy(pattern='*.dll', dst='bin', src='bin')
+        self.copy(pattern='*.dylib', dst='bin', src='lib')
+
+    def test(self):
+        for test in os.listdir('bin'):
+            if test.startswith('tst_'):
+                self.run(test)

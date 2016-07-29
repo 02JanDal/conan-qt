@@ -1,0 +1,88 @@
+from conans import ConanFile
+<!--(if 'tar' in src or 'zip' in src)-->from conans.tools import download, check_md5<!--(end)-->
+<!--(if 'zip' in src)-->from conans.tools import unzip<!--(end)-->
+<!--(if 'tar' in src)-->import tarfile<!--(end)-->
+import os
+import shutil
+
+channel = os.getenv("CONAN_CHANNEL", "testing")
+username = os.getenv("CONAN_USERNAME", "02jandal")
+
+class @!name!@Conan(ConanFile):
+    name = '@!name!@'
+    version = '@!version!@'
+    url = '@!meta.url!@'
+    settings = 'os', 'compiler', 'arch', 'build_type'
+    options = {
+        'shared': [True, False]
+        , 'cxxstd': ['auto', 'c++11', 'c++14', 'c++1z']
+    }
+    default_options = '''
+shared=True
+cxxstd=auto
+'''
+    license = '@!meta.license!@'
+    author = '@!meta.author!@'
+
+    __srcdir = '@!name!@'
+
+    def source(self):
+<!--(include)-->downloadsrc.py.template<!--(end)-->
+
+    def requirements(self):
+        <!--(for dep in default('selfdependencies', []))-->
+        self.requires('@!dep!@/@!version!@@{}/{}'.format(username, channel))
+        <!--(else)-->
+        pass
+        <!--(end)-->
+
+    def configure(self):
+        pass
+
+    def build(self):
+        configurecmd = 'configure.bat' if self.settings.os == 'Windows' else './configure'
+        configureflags = ['-opensource', '-confirm-license', '-silent']
+
+        if self.settings.build_type == 'Debug':
+            configureflags.append('-debug')
+        else:
+            configureflags.append('-release')
+
+        configureflags.append('-c++std {}'.format(self.options.cxxstd))
+
+        if self.options.shared:
+            configureflags.append('-shared')
+        else:
+            configureflags.append('-static')
+
+        if self.settings.os == 'Macos':
+            configureflags.append('-no-framework')
+
+        configureflags.append('-nomake examples')
+
+        <!--(if exists('configflags'))-->
+        configureflags.append('@!configflags!@')
+        <!--(end)-->
+
+        self.output.info('Running configure script')
+        self.run('{} {}'.format(configurecmd, ' '.join(configureflags)), cwd=self.__srcdir)
+        self.output.info('Building')
+        self.run('make -j9', cwd=self.__srcdir)
+
+    def package(self):
+        self.copy('*.dylib', 'lib', self.__srcdir + '/lib')
+        self.copy('*.a', 'lib', self.__srcdir + '/lib')
+        self.copy('*.so*', 'lib', self.__srcdir + '/lib')
+        self.copy('*.dll', 'bin', self.__srcdir + '/bin')
+        self.copy('*.cmake', 'lib/cmake', self.__srcdir + '/lib/cmake')
+        self.copy('*.pc', 'lib/pkgconfig', self.__srcdir + '/lib/pkgconfig')
+        self.copy('*.dylib', 'plugins', self.__srcdir + '/plugins', keep_path=True)
+        self.copy('*.so', 'plugins', self.__srcdir + '/plugins', keep_path=True)
+        self.copy('*.dll', 'plugins', self.__srcdir + '/plugins', keep_path=True)
+        self.copy('*.conf', 'mkspecs', self.__srcdir + '/mkspecs', keep_path=True)
+        self.copy('*.h', 'mkspecs', self.__srcdir + '/mkspecs', keep_path=True)
+        self.copy('*.pri', 'mkspecs', self.__srcdir + '/mkspecs', keep_path=True)
+        self.copy('*', 'include', self.__srcdir + '/include', keep_path=True)
+        for binary in ['moc', 'qdbuscpp2xml', 'qdbusxml2cpp', 'qlalr', 'qmake', 'rcc', 'uic']:
+            extension = '.exe' if self.settings.os == 'Windows' else ''
+            self.copy(binary + extension, 'bin', self.__srcdir + '/bin')
