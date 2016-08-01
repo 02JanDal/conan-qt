@@ -1,40 +1,286 @@
 defaults:
   qt5meta: &qt5meta
-    license: LGPL 3.0
+    license: LGPL 3.0 <http://doc.qt.io/qt-5/lgpl.html>
     author: 'The Qt Project, The Qt Company'
     url: 'https://qt.io/'
+  inqteverything: &inqteverything
+    versions: ['5.7.0']
+    src: Qt5Everything
+    selfdependencies: [Qt5Core]
+    meta: *qt5meta
 
 packages:
-  - name: Qt5Base
+  - name: Qt5Everything
     isvirtual: true
     versions: ['5.7.0']
-    meta:
-      <<: *qt5meta
-      name: Qt5 Base
+    meta: *qt5meta
     src: &qtbase
       git:
         url: https://code.qt.io/qt/qtbase.git
+        tag: v${version}
       tar:
-        file: /Users/jan/Downloads/qtbase-opensource-src-5.7.0.tar.xz
-        #url: https://download.qt.io/official_releases/qt/5.7/5.7.0/submodules/qtbase-opensource-src-5.7.0.tar.xz
-        md5: 184f9460b40752d71b15b827260580c2
-        root: qtbase-opensource-src-5.7.0
+        file: /home/jan/Downloads/qt-everywhere-opensource-src-${version}.tar.xz
+        #url: https://download.qt.io/official_releases/qt/${version_majmin}/${version}/single/qt-everywhere-opensource-src-${version}.tar.xz
+        md5: 63ec6b584757eef8cd713e4958297251
+        root: qt-everywhere-opensource-src-${version}
+
+  # Qt Essentials
   - name: Qt5Core
     versions: ['5.7.0']
-    meta:
-      <<: *qt5meta
-      name: Qt5 Core
-    src: Qt5Base
-    executables: [qmake, moc, rcc, qlalr]
+    meta: *qt5meta
+    src: Qt5Everything
+    executables: [qmake, moc, rcc, qlalr, qtpaths, qtplugininfo]
     includedirs: [QtCore, QtZlib]
-    otherdirs: [mkspecs]
+    otherdirs: [mkspecs, doc/global, doc/qmake]
+    otherfiles: ['doc/qmake.qch', 'translations/qtbase_*.qm', 'translations/qt_*.qm']
     cmakedirs: [Qt5, Qt5Core, install]
-    mkspecname: core
   - name: Qt5Network
-    versions: ['5.7.0']
-    selfdependencies: [Qt5Core]
+    <<: *inqteverything
+  - name: Qt5Gui
+    <<: *inqteverything
+  - name: Qt5Widgets
+    <<: *inqteverything
+    selfdependencies: [Qt5Core, Qt5Gui]
+    executables: [uic, pixeltool]
+  - name: Qt5Test
+    <<: *inqteverything
+    otherdirs: [doc/qttestlib]
+    otherfiles: ['doc/qttestlib.qch']
+    mkspecname: testlib
+  - name: Qt5Sql
+    <<: *inqteverything
+
+  # Qt Multimedia
+  - name: Qt5Multimedia
+    <<: *inqteverything
+    selfdependencies: [Qt5Core, Qt5Gui, Qt5Network]
+    otherfiles: ['translations/qtmultimedia_*.qm']
+  - name: Qt5MultimediaQuick
+    <<: *inqteverything
+    selfdependencies: [Qt5Multimedia, Qt5Quick, Qt5Core, Qt5Gui, Qt5Network]
+    includedirs: [QtMultimediaQuick_p]
+    otherdirs: [qml/QtMultimedia]
+    otherfiles: ['mkspec/modules/qt_lib_multimediaquicktools_private.pri']
+  - name: Qt5MultimediaWidgets
+    <<: *inqteverything
+    selfdependencies: [Qt5Multimedia, Qt5Widgets, Qt5OpenGL, Qt5Core, Qt5Gui, Qt5Network]
+
+  # Qt Qml/Quick
+  - name: Qt5Qml
+    <<: *inqteverything
+    selfdependencies: [Qt5Network, Qt5Core]
+    otherdirs: [qml/QtQml, qml/Qt/labs/folderlistmodel, qml/Qt/labs/settings]
+    otherfiles: ['translations/qtdeclarative_*.qm', 'qml/builtins.qmltypes']
+    includedirs: [QtQml, QtQmlDebug, QtQmlDevTools]
+    executables: [qml, qmleasing, qmlimportscanner, qmllint, qmlmin, qmlplugindump, qmlprofiler]
+    otherfiles: ['mkspec/modules/qt_lib_qmldebug_private.pri', 'mkspec/modules/qt_lib_qmldevtools_private.pri']
+  - name: Qt5Quick
+    <<: *inqteverything
+    selfdependencies: [Qt5Gui, Qt5Qml, Qt5Network, Qt5Core]
+    otherdirs: ['qml/QtQuick.2', qml/QtQuick/XmlListModel]
+    executables: [qmlscene]
+  - name: Qt5QuickWindows
+    <<: *inqteverything
+    selfdependencies: [Qt5Quick, Qt5Gui, Qt5Qml, Qt5Core, Qt5Network]
+    otherdirs: ['qml/QtQuick/Window.2']
+  - name: Qt5QuickControls
+    <<: *inqteverything
+    selfdependencies: [Qt5QuickWindows, Qt5QuickLayouts, Qt5Quick, Qt5Gui, Qt5Qml, Qt5Core, Qt5Network]
+    otherdirs: ['qml/QtQuick/Controls']
+    otherfiles: ['translations/qtquickcontrols_*.qm']
+  - name: Qt5QuickDialogs
+    <<: *inqteverything
+    selfdependencies: [Qt5QuickControls, Qt5Quick, Qt5Gui, Qt5Qml, Qt5Core, Qt5Network]
+    otherdirs: ['qml/QtQuick/Dialogs', 'qml/QtQuick/PrivateWidgets']
+  - name: Qt5QuickLayouts
+    <<: *inqteverything
+    selfdependencies: [Qt5Quick, Qt5Gui, Qt5Qml, Qt5Core, Qt5Network]
+    otherdirs: ['qml/QtQuick/Layouts']
+  - name: Qt5QuickExtras
+    <<: *inqteverything
+    selfdependencies: [Qt5GraphicalEffects, Qt5Quick, Qt5Gui, Qt5Qml, Qt5Core, Qt5Network]
+    otherdirs: ['qml/QtQuick/Extras']
+  - name: Qt5QuickControls2
+    <<: *inqteverything
+    selfdependencies: [Qt5QuickTemplates2, Qt5Quick, Qt5Gui, Qt5Qml, Qt5Core, Qt5Network, Qt5QuickTemplates2]
+    otherdirs: ['qml/QtQuick/Controls.2', 'qml/QtQuick/Window.2']
+    otherfiles: ['translations/qtquickcontrols2_*.qm']
+  - name: Qt5QuickParticles
+    <<: *inqteverything
+    selfdependencies: [Qt5Quick, Qt5Gui, Qt5Qml, Qt5Network, Qt5Core]
+    otherdirs: [qml/QtQuick/Particles.2]
+  - name: Qt5QuickTemplates2
+    <<: *inqteverything
+    selfdependencies: [Qt5Quick, Qt5Gui, Qt5Qml, Qt5Network, Qt5Core]
+    otherdirs: [qml/QtQuick/Templates.2]
+  - name: Qt5QuickTest
+    <<: *inqteverything
+    selfdependencies: [Qt5Test, Qt5Widgets, Qt5Quick, Qt5Gui, Qt5Qml, Qt5Network, Qt5Core]
+    otherdirs: [qml/QtTest]
+    executables: [qmltestrunner]
+    mkspecname: qmltest
+  - name: Qt5QuickWidgets
+    <<: *inqteverything
+    selfdependencies: [Qt5Widgets, Qt5Quick, Qt5Gui, Qt5Qml, Qt5Network, Qt5Core]
+  - name: Qt5QuickLocalStorage
+    <<: *inqteverything
+    selfdependencies: [Qt5Sql, Qt5Gui, Qt5Qml, Qt5Core, Qt5Network]
+    otherdirs: ['qml/QtQuick/LocalStorage']
+
+  # Qt Add-ons
+  - name: Qt5Concurrent
+    <<: *inqteverything
+  - name: Qt5DBus
+    <<: *inqteverything
+    executables: [qdbuscpp2xml, qdbusxml2cpp, qdbus, qdbusviewer]
+  - name: Qt5Xml
+    <<: *inqteverything
+  - name: Qt5Bluetooth
+    <<: *inqteverything
+    selfdependencies: [Qt5Core, Qt5DBus, Qt5Concurrent]
+    otherdirs: [qml/QtBluetooth]
+    otherfiles: ['translations/qtconnectivity_*.qm']
+    executables: [sdpscanner]
+  - name: Qt5Gamepad
+    <<: *inqteverything
+    selfdependencies: [Qt5Core, Qt5Gui]
+    otherdirs: [qml/QtGamepad]
+  - name: Qt5Location
+    <<: *inqteverything
+    selfdependencies: [Qt5Positioning, Qt5Quick, Qt5Qml, Qt5Gui, Qt5Network, Qt5Core]
+    otherdirs: [qml/QtLocation]
+    otherfiles: ['translations/qtlocation_*.qm']
+  - name: Qt5Nfc
+    <<: *inqteverything
+    otherdirs: [qml/QtNfc]
+    selfdependencies: [Qt5Core, Qt5DBus]
+    otherfiles: ['translations/qtconnectivity_*.qm']
+  - name: Qt5Positioning
+    <<: *inqteverything
+    otherdirs: [qml/QtPositioning]
+  - name: Qt5PrintSupport
+    <<: *inqteverything
+    selfdependencies: [Qt5Widgets, Qt5Gui, Qt5Core]
+  - name: Qt5Purchasing
+    <<: *inqteverything
+    otherdirs: [qml/QtPurchasing]
+  - name: Qt5Script
+    <<: *inqteverything
+    otherfiles: ['translations/qtscript_*.qm']
+  - name: Qt5ScriptTools
+    selfdependencies: [Qt5Core, Qt5Script, Qt5Widgets, Qt5Gui]
+    <<: *inqteverything
+  - name: Qt5Scxml
+    <<: *inqteverything
+    selfdependencies: [Qt5Core, Qt5Qml, Qt5Network]
+    otherdirs: [qml/QtScxml]
+    executables: [qscxmlc]
+  - name: Qt5Sensors
+    <<: *inqteverything
+    otherdirs: [qml/QtSensors]
+  - name: Qt5SerialBus
+    <<: *inqteverything
+    selfdependencies: [Qt5Core, Qt5SerialPort, Qt5Network]
+    executables: [canbusutil]
+  - name: Qt5SerialPort
+    <<: *inqteverything
+    otherfiles: ['translations/qtserialport_*.qm']
+  - name: Qt5Svg
+    <<: *inqteverything
+    selfdependencies: [Qt5Core, Qt5Gui, Qt5Widgets]
+  - name: Qt5WaylandClient
+    <<: *inqteverything
+    selfdependencies: [Qt5Core, Qt5Gui, Qt5DBus]
+    executables: [qtwaylandscanner]
+  - name: Qt5WaylandCompositor
+    <<: *inqteverything
+    selfdependencies: [Qt5Quick, Qt5Gui, Qt5Qml, Qt5Network, Qt5Core]
+    otherdirs: [qml/QtWayland/Compositor]
+  - name: Qt5WebChannel
+    <<: *inqteverything
+    selfdependencies: [Qt5Core, Qt5Qml, Qt5Network]
+    otherdirs: [qml/QtWebChannel]
+  - name: Qt5WebSockets
+    <<: *inqteverything
+    selfdependencies: [Qt5Core, Qt5Network]
+    otherdirs: [qml/QtWebSockets, qml/Qt/WebSockets]
+    otherfiles: ['translations/qtwebsockets_*.qm']
+  - name: Qt5XcbQpa
+    <<: *inqteverything
+  - name: Qt5XmlPatterns
+    <<: *inqteverything
+    otherfiles: ['translations/qtxmlpatterns_*.qm']
+    executables: [xmlpatterns, xmlpatternsvalidator]
+  - name: Qt5OpenGL
+    <<: *inqteverything
+    selfdependencies: [Qt5Core, Qt5Gui, Qt5Widgets]
+  - name: Qt5GraphicalEffects
+    <<: *inqteverything
+    otherdirs: [qml/QtGraphicalEffects]
+
+  # GPLv3-only modules
+  - name: Qt5Charts
+    <<: *inqteverything
+    selfdependencies: [Qt5Widgets, Qt5Gui, Qt5Core]
+    otherdirs: [qml/QtCharts]
     meta:
-      <<: *qt5meta
-      name: Qt5 Network
-    src: Qt5Base
-    mkspecname: network
+      license: GPLv3 <https://doc.qt.io/qt-5/gpl.html>
+  - name: Qt5DataVisualization
+    <<: *inqteverything
+    selfdependencies: [Qt5Core, Qt5Gui]
+    otherdirs: [qml/QtDataVisualization]
+    otherfiles: [doc/qtdatavis3d.qch]
+    meta:
+      license: GPLv3 <https://doc.qt.io/qt-5/gpl.html>
+  - name: Qt5VirtualKeyboard
+    <<: *inqteverything
+    selfdependencies: [Qt5Core, Qt5Gui, Qt5Qml, Qt5Network, Qt5Quick, Qt5QuickLayouts]
+    meta:
+      license: GPLv3 <https://doc.qt.io/qt-5/gpl.html>
+    otherdirs: [qml/QtQuick/VirtualKeyboard]
+
+  # platform-specific extras
+  - name: Qt5X11Extras
+    <<: *inqteverything
+    selfdependencies: [Qt5Core, Qt5Gui]
+  - name: Qt5WinExtras
+    <<: *inqteverything
+    selfdependencies: [Qt5Core, Qt5Gui]
+  - name: Qt5MacExtras
+    <<: *inqteverything
+    selfdependencies: [Qt5Core, Qt5Gui]
+
+  # Qt Tools
+  - name: Qt5LinguistTools
+    <<: *inqteverything
+    executables: [linguist, lrelease, lupdate, lconvert]
+    otherfiles: ['doc/qtlinguist.qch', 'translations/linguist_*.qm']
+    otherdirs: [doc/qtlinguist, phrasebooks]
+    selfdependencies: [Qt5Xml, Qt5Widgets, Qt5Gui, Qt5PrintSupport, Qt5Core]
+  - name: Qt5Doc
+    <<: *inqteverything
+    executables: [qdoc]
+    otherdirs: [doc/qdoc]
+    otherfiles: ['doc/qdoc.qch']
+    selfdependencies: [Qt5Help]
+  - name: Qt5CLucene
+    <<: *inqteverything
+  - name: Qt5Help
+    <<: *inqteverything
+    executables: [assistant, qcollectiongenerator, qhelpconverter, qhelpgenerator]
+    otherfiles: ['translations/assistant_*.qm', 'doc/qtassistant.qch']
+    otherdirs: [doc/qtassistant]
+    selfdependencies: [Qt5CLucene, Qt5Sql, Qt5Widgets, Qt5Network, Qt5Gui, Qt5Core]
+  - name: Qt5Designer
+    <<: *inqteverything
+    executables: [designer]
+    otherfiles: ['lib/*Qt5DesignerComponents.*', 'translations/designer_*.qm']
+    includedirs: [QtDesigner, QtDesignerComponents]
+    selfdependencies: [Qt5Xml, Qt5Widgets, Qt5Gui, Qt5Core]
+    otherfiles: ['mkspec/modules/qt_lib_designercomponents_private.pri']
+  - name: Qt5UiTools
+    <<: *inqteverything
+    includedirs: [QtUiPlugin, QtUiTools]
+    otherfiles: ['doc/qtuitools.qch']
+    otherdirs: [doc/qtuitools]
+    selfdependencies: [Qt5Widgets, Qt5Gui, Qt5Core]

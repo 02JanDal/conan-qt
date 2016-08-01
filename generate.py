@@ -1,10 +1,12 @@
+#!/usr/bin/env python3
 from pyratemp import Template
 from yaml import load as yamlload
-from os import mkdir, getenv
-from shutil import rmtree
+from os import mkdir, getenv, walk, path, makedirs
+from shutil import rmtree, copytree
 import subprocess
 from toposort import toposort_flatten
 from argparse import ArgumentParser
+from string import Template as StringTemplate
 
 
 class DictObject:
@@ -37,6 +39,8 @@ class Generator:
     __data = None
 
     def __process_template(self, filein, fileout, data):
+        if path.exists(fileout):
+            return
         filein = 'templates/' + filein + '.template'
         if filein not in self.__templates:
             self.__templates[filein] = Template(filename=filein, escape=None)
@@ -80,14 +84,40 @@ class Generator:
 
         dir = self.__dir(package, version)
         testdir = dir + '/test'
-        mkdir(dir)
-        mkdir(testdir)
+        if path.exists('data/{}-{}'.format(package, version)):
+            copytree('data/{}-{}'.format(package, version), dir)
+        elif path.exists('data/{}'.format(package)):
+            copytree('data/{}'.format(package), dir)
+        if not path.exists(dir):
+            mkdir(dir)
+        if not path.exists(testdir):
+            mkdir(testdir)
 
         data = self.entry(package, version)
+        if not data:
+            print('{} version {} is not available from data.yaml'.format(package, version))
+            return False
         data['version'] = version
+        data['mkspecname'] = data['mkspecname'] if 'mkspecname' in data else data['name'].replace('Qt5', '').lower()
+
+        subargs = {
+            'version': version,
+            'version_majmin': '.'.join(version.split('.')[:2])
+        }
+        if 'src' in data:
+            if 'git' in data['src'] and 'tag' in data['src']['git']:
+                data['src']['git']['tag'] = StringTemplate(data['src']['git']['tag']).safe_substitute(**subargs)
+            if 'tar' in data['src']:
+                if 'file' in data['src']['tar']:
+                    data['src']['tar']['file'] = StringTemplate(data['src']['tar']['file']).safe_substitute(**subargs)
+                if 'url' in data['src']['tar']:
+                    data['src']['tar']['url'] = StringTemplate(data['src']['tar']['url']).safe_substitute(**subargs)
+                if 'root' in data['src']['tar']:
+                    data['src']['tar']['root'] = StringTemplate(data['src']['tar']['root']).safe_substitute(**subargs)
+
         self.__process_template('build.py', dir + '/build.py', data)
-        if package == 'Qt5Base':
-            self.__process_template('conanfile-qtbase-fromsrc.py', dir + '/conanfile.py', data)
+        if package == 'Qt5Everything':
+            self.__process_template('conanfile-qteverything-fromsrc.py', dir + '/conanfile.py', data)
         elif isinstance(data['src'], str):
             self.__process_template('conanfile-frominherit.py', dir + '/conanfile.py', data)
         else:
@@ -95,13 +125,15 @@ class Generator:
         self.__process_template('test/conanfile.py', testdir + '/conanfile.py', data)
         self.__process_template('test/CMakeLists.txt', testdir + '/CMakeLists.txt', data)
 
+        return True
+
     def remove(self, package, version):
         rmtree(self.__dir(package, version), ignore_errors=True)
 
 
-def export_package(username, package, version):
+def export_package(username, channel, package, version):
     dir = package + '-' + version
-    subprocess.check_call(['conan', 'export', username], cwd=dir)
+    subprocess.check_call(['conan', 'export', username + '/' + channel], cwd=dir)
 
 
 def test_package(package, version):
@@ -115,16 +147,18 @@ def dependencies(entry):
         deps.append(entry['src'])
     return set(deps)
 
+version = '5.7.0'
+username = getenv('CONAN_USERNAME', "jandal")
+channel = getenv('CONAN_CHANNEL', 'testing')
+
 if __name__ == '__main__':
     parser = ArgumentParser(description='Generate conanfiles for Qt modules')
     parser.add_argument('-e', metavar='PKG', dest='exclude', type=str, nargs='+', help='packages to not build/test')
     parser.add_argument('packages', metavar='PKG', type=str, nargs='*', help='only build/test these packages')
+    parser.add_argument('-g', dest='generateonly', action='store_true', help='Only generate files, do not build/install/test anything')
     args = parser.parse_args()
 
     g = Generator()
-
-    version = '5.7.0'
-    username = getenv("CONAN_USERNAME", "jandal")
 
     package_entries = [g.entry(pkg, version) for pkg in g.packages_for_version(version)]
     packages_dependencies = {e['name']: dependencies(e) for e in package_entries}
@@ -133,7 +167,12 @@ if __name__ == '__main__':
     for pkg in packages_sorted:
         print('Re-generating {} {}'.format(pkg, version))
         g.remove(pkg, version)
-        g.generate(pkg, version)
-        export_package(username, pkg, version)
-        if (not args.exclude or pkg not in args.exclude) and (not args.packages or pkg in args.packages):
-            test_package(pkg, version)
+        if g.generate(pkg, version):
+            if not args.generateonly:
+                export_package(username, channel, pkg, version)
+                if (not args.exclude or pkg not in args.exclude) and (not args.packages or pkg in args.packages):
+                    test_package(pkg, version)
+
+        # quick and dirty early exit
+        if args.packages and [pkg] == args.packages:
+            break

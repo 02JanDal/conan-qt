@@ -11,16 +11,24 @@ class @!name!@TestConan(ConanFile):
     requires = '@!name!@/@!version!@@{}/{}'.format(username, channel)
     generators = 'cmake', 'qmake'
 
-    def build(self):
-        cmake = CMake(self.settings)
-        self.run('cmake {} {}'.format(self.conanfile_directory, cmake.command_line))
-        self.run('cmake --build . {}'.format(cmake.build_config))
-
     def imports(self):
         self.copy(pattern='*.dll', dst='bin', src='bin')
         self.copy(pattern='*.dylib', dst='bin', src='lib')
+        self.copy(pattern='qmake', dst='bin', src='bin')
+
+    def build(self):
+        if os.path.isfile('../../test.pro') and False:
+            qmake_build_dir = os.path.join(os.getcwd(), 'qmake_build')
+            os.makedirs(qmake_build_dir)
+            self.run('{} ../../../'.format(os.path.join(os.getcwd(), 'bin', 'qmake')), cwd=qmake_build_dir)
+            self.run('make', cwd=qmake_build_dir)
+
+        if len(os.listdir(self.conanfile_directory)) > 4:
+            cmake = CMake(self.settings)
+            self.run('cmake {} {}'.format(self.conanfile_directory, cmake.command_line))
+            self.run('cmake --build . {}'.format(cmake.build_config))
 
     def test(self):
-        for test in os.listdir('bin'):
-            if test.startswith('tst_'):
-                self.run(test)
+        if len(os.listdir(self.conanfile_directory)) > 4:
+            cmake = CMake(self.settings)
+            self.run('cmake --build . --target test {}'.format(cmake.build_config))

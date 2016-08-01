@@ -1,0 +1,117 @@
+from conans import ConanFile
+<!--(if 'tar' in src or 'zip' in src)-->from conans.tools import download, check_md5<!--(end)-->
+<!--(if 'zip' in src)-->from conans.tools import unzip<!--(end)-->
+<!--(if 'tar' in src)-->import tarfile<!--(end)-->
+from conans.tools import replace_in_file
+import os
+import shutil
+import stat
+from multiprocessing import cpu_count
+from sys import platform
+from contextlib import contextmanager
+
+channel = os.getenv("CONAN_CHANNEL", "testing")
+username = os.getenv("CONAN_USERNAME", "02jandal")
+
+class @!name!@Conan(ConanFile):
+    name = '@!name!@'
+    version = '@!version!@'
+    url = '@!meta.url!@'
+    settings = 'os', 'compiler', 'arch', 'build_type'
+    options = {
+        'shared': [True, False]
+        , 'cxxstd': ['auto', 'c++11', 'c++14', 'c++1z']
+    }
+    default_options = '''
+shared=True
+cxxstd=auto
+'''
+    license = '@!meta.license!@'
+    author = '@!meta.author!@'
+
+    __srcdir = '@!name!@'
+
+    def __tries(self, callback, retries=3):
+        for i in range(retries):
+            try:
+                self.output.info('Try {}...'.format(i))
+                callback()
+                break # didn't throw, no need to retry
+            except Exception:
+                if i < retries - 1:
+                    continue # try again
+                else:
+                    raise # no more tries left
+
+    def source(self):
+<!--(include)-->downloadsrc.py.template<!--(end)-->
+
+    def requirements(self):
+        <!--(for dep in default('selfdependencies', []))-->
+        self.requires('@!dep!@/@!version!@@{}/{}'.format(username, channel))
+        <!--(else)-->
+        pass
+        <!--(end)-->
+
+    def configure(self):
+        pass
+
+    def build(self):
+        self.output.info('Will use {} jobs during build'.format(cpu_count()+1))
+
+        configurecmd = 'configure.bat' if self.settings.os == 'Windows' else './configure'
+        # QtWebEngine makes the build system even more terrible, adding python(2 only), ninja, gyp and more to the mix
+        configureflags = ['-opensource', '-confirm-license', '-silent', '-prefix', os.getcwd(), '-skip', 'qtwebengine']
+
+        if self.settings.build_type == 'Debug':
+            configureflags.append('-debug')
+        else:
+            configureflags.append('-release')
+
+        configureflags.append('-c++std {}'.format(self.options.cxxstd))
+
+        if self.options.shared:
+            configureflags.append('-shared')
+        else:
+            configureflags.append('-static')
+
+        if self.settings.os == 'Macos':
+            configureflags.append('-no-framework')
+
+        configureflags.append('-nomake examples')
+
+        <!--(if exists('configflags'))-->
+        configureflags.append('@!configflags!@')
+        <!--(end)-->
+
+        try:
+
+            self.output.info('Running configure script')
+            self.run('{} {}'.format(configurecmd, ' '.join(configureflags)), cwd=self.__srcdir)
+            self.output.info('Building')
+
+            oldrunner = self._runner
+            def runner(cmd, *args):
+                self.output.info('Running {}'.format(cmd))
+                oldrunner(cmd, *args)
+            self._runner = runner
+
+            # dependency issues happen every now and then with >1 jobs, so we try a few times
+            self.__tries(lambda: self.run('make -j{} >/dev/null'.format(cpu_count()+1), cwd=self.__srcdir))
+            self.__tries(lambda: self.run('make -j{} install >/dev/null'.format(cpu_count()+1), cwd=self.__srcdir))
+            self.__tries(lambda: self.run('make -j{} docs >/dev/null'.format(cpu_count()+1), cwd=self.__srcdir))
+            self.__tries(lambda: self.run('make -j{} install_docs >/dev/null'.format(cpu_count()+1), cwd=self.__srcdir))
+
+        finally:
+            self._runner = oldrunner
+
+    def package(self):
+        self.copy('*', 'bin', 'bin')
+        self.copy('*', 'lib', 'lib')
+        self.copy('*', 'plugins', 'plugins')
+        self.copy('*', 'mkspecs', 'mkspecs')
+        self.copy('*', 'include', 'include')
+        self.copy('*', 'doc', 'doc')
+        self.copy('*', 'phrasebooks', 'phrasebooks')
+        self.copy('*', 'qml', 'qml')
+        self.copy('*', 'translations', 'translations')

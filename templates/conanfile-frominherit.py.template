@@ -1,6 +1,7 @@
 from conans import ConanFile
 import os
 import shutil
+import re
 
 channel = os.getenv("CONAN_CHANNEL", "testing")
 username = os.getenv("CONAN_USERNAME", "jandal")
@@ -24,7 +25,7 @@ cxxstd=auto
     @staticmethod
     def __parse_simple_qmake(file):
         with open(file) as f:
-            split_lines = [line.split(' ') for line in f.readlines()]
+            split_lines = [line.strip().split(' ') for line in f.readlines()]
             return {line[0]: line[2:] for line in split_lines if line[1] == '='}
 
     def requirements(self):
@@ -38,10 +39,11 @@ cxxstd=auto
         self.options['@!src!@'].cxxstd = self.options.cxxstd
 
     def imports(self):
-        self.output.info('imports')
         shutil.rmtree('tmp', ignore_errors=True)
         os.mkdir('tmp')
         self.copy('*@!name!@*.prl', src='lib', dst='tmp/lib', root_package='@!src!@')
+        self.copy('*@!name!@*.la', src='lib', dst='tmp/lib', root_package='@!src!@')
+        self.copy('*@!name!@*.lib', src='lib', dst='tmp/lib', root_package='@!src!@')
         self.copy('*@!name!@*.dylib', src='lib', dst='tmp/lib', root_package='@!src!@')
         self.copy('*@!name!@*.a', src='lib', dst='tmp/lib', root_package='@!src!@')
         self.copy('*@!name!@*.so*', src='lib', dst='tmp/lib', root_package='@!src!@')
@@ -56,9 +58,13 @@ cxxstd=auto
         <!--(for other in default('otherdirs', []))-->
         self.copy('*', src='@!other!@', dst='tmp/@!other!@', root_package='@!src!@')
         <!--(end)-->
+        <!--(for other in default('otherfiles', []))-->
+        self.copy(os.path.split('@!other!@')[1], src=os.path.split('@!other!@')[0], dst='tmp/' + os.path.split('@!other!@')[0])
+        <!--(end)-->
         self.copy('*', src='mkspecs/modules', dst='tmp/mkspecs/modules', root_package='@!src!@')
-        self.copy('*', src='mkspecs/modules-inst', dst='tmp/mkspecs/modules-inst', root_package='@!src!@')
         self.copy('*', src='plugins', dst='tmp/plugins')
+        self.copy('*', src='doc/@!name.replace('Qt5', 'Qt').lower()!@', dst='tmp/doc/@!name.replace('Qt5', 'Qt').lower()!@')
+        self.copy('@!name.replace('Qt5', 'Qt').lower()!@.qch', src='doc', dst='tmp/doc')
 
         extension = '.exe' if self.settings.os == 'Windows' else ''
         <!--(for exe in default('executables', []))-->
@@ -66,33 +72,56 @@ cxxstd=auto
         <!--(end)-->
 
     def build(self):
-        self.output.info('build')
+        def replace_in(filename, pattern, replacement):
+            f = open(filename, 'r')
+            data = f.read()
+            f.close()
+            data = re.sub(pattern, replacement, data)
+            with open(filename, 'w') as f:
+                f.write(data)
+# otherfiles shouldn't be removed
         shutil.copytree('tmp', 'pkg')
-        <!--(if exists('mkspecname'))-->
-        self.output.info(os.getcwd() + '/pkg/mkspecs/modules')
-        for file in os.listdir('pkg/mkspecs/modules'):
-            if not file.endswith('qt_lib_@!mkspecname!@.pri'):
-                os.remove('pkg/mkspecs/modules/' + file)
-        for file in os.listdir('pkg/mkspecs/modules-inst'):
-            if not file.endswith('qt_lib_@!mkspecname!@.pri'):
-                os.remove('pkg/mkspecs/modules-inst/' + file)
-        module_pri = self.__parse_simple_qmake('pkg/mkspecs/modules-inst/qt_lib_@!mkspecname!@.pri')
-        if 'QT.@!mkspecname!@.plugin_types' in module_pri:
-            for plugin_type in module_pri['QT.@!mkspecname!@.plugin_types']:
+        if os.path.isfile('pkg/mkspecs/modules/qt_lib_@!mkspecname!@.pri'):
+            for file in os.listdir('pkg/mkspecs/modules'):
+                if not file.endswith('qt_lib_@!mkspecname!@.pri') and not file.endswith('qt_lib_@!mkspecname!@_private.pri'):
+                    os.remove('pkg/mkspecs/modules/' + file)
+                else:
+                    replace_in('pkg/mkspecs/modules/' + file,
+                               r'\$\$QT_MODULE_LIB_BASE',
+                               '$$PWD/../../lib')
+                    replace_in('pkg/mkspecs/modules/' + file,
+                               r'\$\$QT_MODULE_INCLUDE_BASE',
+                               '$$PWD/../../include')
+
+            module_pri = self.__parse_simple_qmake('pkg/mkspecs/modules/qt_lib_@!mkspecname!@.pri')
+            if 'QT.@!mkspecname!@.plugin_types' in module_pri:
                 for plugin_type_dir in os.listdir('pkg/plugins'):
-                    if plugin_type_dir != plugin_type:
+                    if plugin_type_dir not in module_pri['QT.@!mkspecname!@.plugin_types']:
                         shutil.rmtree('pkg/plugins/' + plugin_type_dir)
-        <!--(else)-->
-        shutil.rmtree('pkg/mkspecs/modules')
-        shutil.rmtree('pkg/mkspecs/modules-inst')
-        <!--(end)-->
+        else:
+            shutil.rmtree('pkg/mkspecs/modules')
+
+        qt5coreconfigextrasmkspecdir_file = 'pkg/lib/cmake/Qt5Core/Qt5CoreConfigExtrasMkspecDir.cmake'
+        if os.path.isfile(qt5coreconfigextrasmkspecdir_file):
+            replace_in(qt5coreconfigextrasmkspecdir_file,
+                       r'set\(_qt5_corelib_extra_includes ".*/Qt5Base/',
+                       'set(_qt5_corelib_extra_includes "${CMAKE_CURRENT_LIST_DIR}/../../../')
+
+        qt5config_file = 'pkg/lib/cmake/Qt5/Qt5Config.cmake'
+        if os.path.isfile(qt5config_file):
+            replace_in(qt5config_file,
+                       r'PATHS "\$\{_qt5_install_prefix\}" NO_DEFAULT_PATH',
+                       'PATHS "${_qt5_install_prefix}"')
+
+        if os.path.isdir('pkg/lib/cmake/@!name!@'):
+            replace_in('pkg/lib/cmake/@!name!@/@!name!@Config.cmake',
+                       r'PATHS "\$\{CMAKE_CURRENT_LIST_DIR\}/.." NO_DEFAULT_PATH',
+                       'PATHS "${CMAKE_CURRENT_LIST_DIR}/.."')
 
     def package(self):
-        self.output.info('package')
         self.copy('*', src='pkg', dst='.', keep_path=True)
 
     def package_info(self):
-        self.output.info('package_info')
         def is_internal_linkflag(flag):
             return flag.startswith('-lQt5') or (flag.startswith('-L') and flag.endswith('lib') and 'Qt5' in flag)
 
@@ -101,21 +130,4 @@ cxxstd=auto
         <!--(end)-->
         <!--(if not default('executables', None) is None)-->
         self.cpp_info.bindirs.append('bin')
-        <!--(end)-->
-
-        <!--(for lib in default('prllibs', [name]))-->
-        #@!lib!@_prl = self.__parse_simple_qmake(self.package_folder + '/lib/@!lib!@.prl')
-        @!lib!@_prl = {}
-        if 'QMAKE_PRL_TARGET' in @!lib!@_prl:
-            self.cpp_info.libs.append(@!lib!@_prl['QMAKE_PRL_TARGET'])
-        if 'QMAKE_PRL_DEFINES' in @!lib!@_prl:
-            self.cpp_info.defines += @!lib!@_prl['QMAKE_PRL_DEFINES'].split(' ')
-        if 'QMAKE_PRL_CFLAGS' in @!lib!@_prl:
-            self.cpp_info.defines += @!lib!@_prl['QMAKE_PRL_CFLAGS'].split(' ')
-        if 'QMAKE_PRL_CXXFLAGS' in @!lib!@_prl:
-            self.cpp_info.defines += @!lib!@_prl['QMAKE_PRL_CXXFLAGS'].split(' ')
-        if 'QMAKE_PRL_LIBS' in @!lib!@_prl:
-            linkflags = [l for l in @!lib!@_prl['QMAKE_PRL_LIBS'] if not is_internal_linkflag(l)].split(' ')
-            self.cpp_info.sharedlinkflags += linkflags
-            self.cpp_info.exelinkflags += linkflags
         <!--(end)-->

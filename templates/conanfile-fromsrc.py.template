@@ -6,7 +6,7 @@ import os
 import shutil
 
 channel = os.getenv("CONAN_CHANNEL", "testing")
-username = os.getenv("CONAN_USERNAME", "02jandal")
+username = os.getenv("CONAN_USERNAME", "jandal")
 
 class @!name!@Conan(ConanFile):
     name = '@!name!@'
@@ -27,38 +27,7 @@ cxxstd=auto
     __srcdir = '@!name!@'
 
     def source(self):
-        <!--(if 'tar' in src and 'file' in src.tar)-->
-        self.output.info('Copying @!src.tar.file!@')
-        tarfilename = '@!src.tar.file!@'.rsplit(sep='/', maxsplit=1)[1]
-        shutil.copyfile('@!src.tar.file!@', tarfilename)
-        <!--(elif 'tar' in src and 'url' in src.tar)-->
-        self.output.info('Downloading @!src.tar.url!@')
-        tarfilename = '@!src.tar.url!@'.rsplit(sep='/', maxsplit=1)[1]
-        download('@!src.tar.url!@', tarfilename)
-        <!--(end)-->
-        <!--(if 'tar' in src)-->
-        self.output.info('Checking MD5')
-        check_md5(tarfilename, '@!src.tar.md5!@')
-        tar = tarfile.open(tarfilename)
-        self.output.info('Extracting archive')
-        tar.extractall()
-        tar.close()
-        shutil.move('@!src.tar.root!@', self.__srcdir)
-        os.unlink(tarfilename)
-        <!--(elif 'zip' in src)-->
-        self.output.info('Downloading @!src.zip.url!@')
-        zipfilename = '@!src.zip.url!@'.rsplit(sep='/')[0]
-        download('@!src.zip.url!@', zipfilename)
-        self.output.info('Checking MD5')
-        check_md5(zipfilename, '@!src.tar.md5!@')
-        self.output.info('Extracting archive')
-        unzip(zipfilename)
-        shutil.move('@!src.zip.root!@', self.__srcdir)
-        os.unlink(zipfilename)
-        <!--(elif 'git' in src)-->
-        self.output.info('Cloning Git repository')
-        self.run('git clone @!src.git.url!@ {}'.format(self.__srcdir))
-        <!--(end)-->
+<!--(include)-->downloadsrc.py.template<!--(end)-->
 
     def requirements(self):
         <!--(for dep in default('selfdependencies', []))-->
@@ -67,8 +36,13 @@ cxxstd=auto
         pass
         <!--(end)-->
 
-    def config(self):
+    def configure(self):
+        <!--(for dep in default('selfdependencies', []))-->
+        self.options['@!dep!@'].shared = self.options.shared
+        self.options['@!dep!@'].cxxstd = self.options.cxxstd
+        <!--(else)-->
         pass
+        <!--(end)-->
 
     def build(self):
         configurecmd = 'configure.bat' if self.settings.os == 'Windows' else './configure'
