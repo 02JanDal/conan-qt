@@ -5,8 +5,7 @@ enable_testing()
 
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup()
-list(APPEND CMAKE_PREFIX_PATH ${CONAN_QT5CORE_ROOT}/lib/cmake/)
-list(APPEND CMAKE_PREFIX_PATH ${CONAN_@!name.upper()!@_ROOT}/lib/cmake/)
+list(INSERT 1 CMAKE_PREFIX_PATH "${CONAN_QT5CORE_ROOT}/lib/cmake/" "${CONAN_@!name.upper()!@_ROOT}/lib/cmake/")
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)

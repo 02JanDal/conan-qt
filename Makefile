@@ -9,4 +9,7 @@ withouteverything:
 initial:
 	${PYTHONCMD} generate.py
 
+compare: withouteverything
+	./compare.sh
+
 all: initial
