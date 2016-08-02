@@ -7,6 +7,7 @@ import subprocess
 from toposort import toposort_flatten
 from argparse import ArgumentParser
 from string import Template as StringTemplate
+from sys import platform
 
 
 class DictObject:
@@ -74,6 +75,7 @@ class Generator:
         return set(packages)
 
     def entry(self, package, version):
+        self.__load_data()
         try:
             return next(entry for entry in self.__data['packages'] if entry['name'] == package and version in entry['versions'])
         except StopIteration:
@@ -147,6 +149,16 @@ def dependencies(entry):
         deps.append(entry['src'])
     return set(deps)
 
+
+def current_operating_system():
+    os = platform
+    if os.startswith('linux'):
+        return 'linux'
+    elif os == 'darwin':
+        return 'osx'
+    else:
+        return 'windows'
+
 version = '5.7.0'
 username = getenv('CONAN_USERNAME', "jandal")
 channel = getenv('CONAN_CHANNEL', 'testing')
@@ -160,9 +172,19 @@ if __name__ == '__main__':
 
     g = Generator()
 
-    package_entries = [g.entry(pkg, version) for pkg in g.packages_for_version(version)]
-    packages_dependencies = {e['name']: dependencies(e) for e in package_entries}
+    if args.packages:
+        packages = args.packages
+    else:
+        packages = g.packages_for_version(version)
+    package_entries = [g.entry(pkg, version) for pkg in packages]
+    packages_dependencies = {e['name']: dependencies(e) for e in package_entries if 'os' not in e or current_operating_system() == e['os']}
     packages_sorted = toposort_flatten(packages_dependencies)
+
+    def should_build(package):
+        if args.exclude and pkg in args.exclude:
+            return False
+        else:
+            return package in packages
 
     for pkg in packages_sorted:
         print('Re-generating {} {}'.format(pkg, version))
@@ -170,9 +192,5 @@ if __name__ == '__main__':
         if g.generate(pkg, version):
             if not args.generateonly:
                 export_package(username, channel, pkg, version)
-                if (not args.exclude or pkg not in args.exclude) and (not args.packages or pkg in args.packages):
+                if should_build(pkg):
                     test_package(pkg, version)
-
-        # quick and dirty early exit
-        if args.packages and [pkg] == args.packages:
-            break
