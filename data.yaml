@@ -36,25 +36,31 @@ packages:
     cmakedirs: [Qt5, Qt5Core, install]
   - name: Qt5Network
     <<: *inqteverything
+    test: {object: QNetworkAccessManager}
   - name: Qt5Gui
     <<: *inqteverything
+    test: {object: QWindow, app: QGuiApplication}
   - name: Qt5Widgets
     <<: *inqteverything
     selfdependencies: [Qt5Core, Qt5Gui]
     executables: [uic, pixeltool]
+    test: {object: QWidget, app: QApplication}
   - name: Qt5Test
     <<: *inqteverything
     otherdirs: [doc/qttestlib]
     otherfiles: ['doc/qttestlib.qch']
     mkspecname: testlib
+    test: {function: 'QTest::qWait(0)', include: QtTest}
   - name: Qt5Sql
     <<: *inqteverything
+    test: {object: QSqlDatabase}
 
   # Qt Multimedia
   - name: Qt5Multimedia
     <<: *inqteverything
     selfdependencies: [Qt5Core, Qt5Gui, Qt5Network]
     otherfiles: ['translations/qtmultimedia_*.qm']
+    test: {object: QAudioOutput, app: QGuiApplication}
   - name: Qt5MultimediaQuick
     <<: *inqteverything
     selfdependencies: [Qt5Multimedia, Qt5Quick, Qt5Core, Qt5Gui, Qt5Network]
@@ -64,6 +70,7 @@ packages:
   - name: Qt5MultimediaWidgets
     <<: *inqteverything
     selfdependencies: [Qt5Multimedia, Qt5Widgets, Qt5OpenGL, Qt5Core, Qt5Gui, Qt5Network]
+    test: {object: QVideoWidget, app: QApplication}
 
   # Qt Qml/Quick
   - name: Qt5Qml
@@ -74,11 +81,13 @@ packages:
     includedirs: [QtQml, QtQmlDebug, QtQmlDevTools]
     executables: [qml, qmleasing, qmlimportscanner, qmllint, qmlmin, qmlplugindump, qmlprofiler]
     otherfiles: ['mkspec/modules/qt_lib_qmldebug_private.pri', 'mkspec/modules/qt_lib_qmldevtools_private.pri']
+    test: {object: QQmlEngine}
   - name: Qt5Quick
     <<: *inqteverything
     selfdependencies: [Qt5Gui, Qt5Qml, Qt5Network, Qt5Core]
     otherdirs: ['qml/QtQuick.2', qml/QtQuick/XmlListModel]
     executables: [qmlscene]
+    test: {object: QQuickView, app: QGuiApplication}
   - name: Qt5QuickWindows
     <<: *inqteverything
     selfdependencies: [Qt5Quick, Qt5Gui, Qt5Qml, Qt5Core, Qt5Network]
@@ -105,6 +114,8 @@ packages:
     selfdependencies: [Qt5QuickTemplates2, Qt5Quick, Qt5Gui, Qt5Qml, Qt5Core, Qt5Network, Qt5QuickTemplates2]
     otherdirs: ['qml/QtQuick/Controls.2', 'qml/QtQuick/Window.2']
     otherfiles: ['translations/qtquickcontrols2_*.qm']
+    # Qt Quick Controls 2 depend on Templates 2, but do not specify that. bug in Qt?
+    #test: {object: QQuickStyle, app: QGuiApplication}
   - name: Qt5QuickParticles
     <<: *inqteverything
     selfdependencies: [Qt5Quick, Qt5Gui, Qt5Qml, Qt5Network, Qt5Core]
@@ -122,6 +133,7 @@ packages:
   - name: Qt5QuickWidgets
     <<: *inqteverything
     selfdependencies: [Qt5Widgets, Qt5Quick, Qt5Gui, Qt5Qml, Qt5Network, Qt5Core]
+    test: {object: QQuickWidget, app: QApplication}
   - name: Qt5QuickLocalStorage
     <<: *inqteverything
     selfdependencies: [Qt5Sql, Qt5Gui, Qt5Qml, Qt5Core, Qt5Network]
@@ -130,64 +142,81 @@ packages:
   # Qt Add-ons
   - name: Qt5Concurrent
     <<: *inqteverything
+    test: {object: QFutureWatcher}
   - name: Qt5DBus
     <<: *inqteverything
     executables: [qdbuscpp2xml, qdbusxml2cpp, qdbus, qdbusviewer]
+    test: {object: QDBusVariant}
   - name: Qt5Xml
     <<: *inqteverything
+    test: {object: QDomDocument}
   - name: Qt5Bluetooth
     <<: *inqteverything
     selfdependencies: [Qt5Core, Qt5DBus, Qt5Concurrent]
     otherdirs: [qml/QtBluetooth]
     otherfiles: ['translations/qtconnectivity_*.qm']
     executables: [sdpscanner]
+    test: {object: QBluetoothAddress}
   - name: Qt5Gamepad
     <<: *inqteverything
     selfdependencies: [Qt5Core, Qt5Gui]
     otherdirs: [qml/QtGamepad]
+    test: {object: QGamepad}
   - name: Qt5Location
     <<: *inqteverything
     selfdependencies: [Qt5Positioning, Qt5Quick, Qt5Qml, Qt5Gui, Qt5Network, Qt5Core]
     otherdirs: [qml/QtLocation]
     otherfiles: ['translations/qtlocation_*.qm']
+    test: {object: QPlace}
   - name: Qt5Nfc
     <<: *inqteverything
     otherdirs: [qml/QtNfc]
     selfdependencies: [Qt5Core, Qt5DBus]
     otherfiles: ['translations/qtconnectivity_*.qm']
+    test: {object: QNearFieldTarget}
   - name: Qt5Positioning
     <<: *inqteverything
     otherdirs: [qml/QtPositioning]
+    test: {object: QGeoCoordinate}
   - name: Qt5PrintSupport
     <<: *inqteverything
     selfdependencies: [Qt5Widgets, Qt5Gui, Qt5Core]
+    test: {object: QPrinter}
   - name: Qt5Purchasing
     <<: *inqteverything
     otherdirs: [qml/QtPurchasing]
+    test: {object: QInAppStore}
   - name: Qt5Script
     <<: *inqteverything
     otherfiles: ['translations/qtscript_*.qm']
+    test: {object: QScriptEngine}
   - name: Qt5ScriptTools
     selfdependencies: [Qt5Core, Qt5Script, Qt5Widgets, Qt5Gui]
     <<: *inqteverything
+    test: {object: QScriptEngineDebugger}
   - name: Qt5Scxml
     <<: *inqteverything
     selfdependencies: [Qt5Core, Qt5Qml, Qt5Network]
     otherdirs: [qml/QtScxml]
     executables: [qscxmlc]
+    test: {object: QScxmlError}
   - name: Qt5Sensors
     <<: *inqteverything
     otherdirs: [qml/QtSensors]
+    test: {object: QAccelerometer}
   - name: Qt5SerialBus
     <<: *inqteverything
     selfdependencies: [Qt5Core, Qt5SerialPort, Qt5Network]
     executables: [canbusutil]
+    test: {object: QCanBusDevice}
   - name: Qt5SerialPort
     <<: *inqteverything
     otherfiles: ['translations/qtserialport_*.qm']
+    test: {object: QSerialPort}
   - name: Qt5Svg
     <<: *inqteverything
     selfdependencies: [Qt5Core, Qt5Gui, Qt5Widgets]
+    test: {object: QSvgGenerator, app: QApplication}
   - name: Qt5WaylandClient
     <<: *inqteverything
     selfdependencies: [Qt5Core, Qt5Gui, Qt5DBus]
@@ -196,21 +225,25 @@ packages:
     <<: *inqteverything
     selfdependencies: [Qt5Quick, Qt5Gui, Qt5Qml, Qt5Network, Qt5Core]
     otherdirs: [qml/QtWayland/Compositor]
+    test: {object: QWaylandXdgPopup}
   - name: Qt5WebChannel
     <<: *inqteverything
     selfdependencies: [Qt5Core, Qt5Qml, Qt5Network]
     otherdirs: [qml/QtWebChannel]
+    test: {object: QWebChannel}
   - name: Qt5WebSockets
     <<: *inqteverything
     selfdependencies: [Qt5Core, Qt5Network]
     otherdirs: [qml/QtWebSockets, qml/Qt/WebSockets]
     otherfiles: ['translations/qtwebsockets_*.qm']
+    test: {object: QWebSocket}
   - name: Qt5XcbQpa
     <<: *inqteverything
   - name: Qt5XmlPatterns
     <<: *inqteverything
     otherfiles: ['translations/qtxmlpatterns_*.qm']
     executables: [xmlpatterns, xmlpatternsvalidator]
+    test: {object: QXmlItem}
   - name: Qt5OpenGL
     <<: *inqteverything
     selfdependencies: [Qt5Core, Qt5Gui, Qt5Widgets]
@@ -225,6 +258,7 @@ packages:
     otherdirs: [qml/QtCharts]
     meta:
       license: GPLv3 <https://doc.qt.io/qt-5/gpl.html>
+    test: {object: QChart, app: QGuiApplication}
   - name: Qt5DataVisualization
     <<: *inqteverything
     selfdependencies: [Qt5Core, Qt5Gui]
@@ -232,6 +266,7 @@ packages:
     otherfiles: [doc/qtdatavis3d.qch]
     meta:
       license: GPLv3 <https://doc.qt.io/qt-5/gpl.html>
+    test: {object: Q3DCamera, app: QGuiApplication}
   - name: Qt5VirtualKeyboard
     <<: *inqteverything
     selfdependencies: [Qt5Core, Qt5Gui, Qt5Qml, Qt5Network, Qt5Quick, Qt5QuickLayouts]
@@ -243,12 +278,18 @@ packages:
   - name: Qt5X11Extras
     <<: *inqteverything
     selfdependencies: [Qt5Core, Qt5Gui]
+    test: {function: 'QX11Info::isPlatformX11', include: QX11Info}
+    os: [linux]
   - name: Qt5WinExtras
     <<: *inqteverything
     selfdependencies: [Qt5Core, Qt5Gui]
+    test: {object: QWinJumpList}
+    os: [windows]
   - name: Qt5MacExtras
     <<: *inqteverything
     selfdependencies: [Qt5Core, Qt5Gui]
+    test: {object: QMacToolBar}
+    os: [osx]
 
   # Qt Tools
   - name: Qt5LinguistTools

@@ -127,6 +127,9 @@ class Generator:
         self.__process_template('test/conanfile.py', testdir + '/conanfile.py', data)
         self.__process_template('test/CMakeLists.txt', testdir + '/CMakeLists.txt', data)
 
+        if 'test' in data:
+            self.__process_template('test/main.cpp', '{}/tst_{}.cpp'.format(testdir, data['name']), data)
+
         return True
 
     def remove(self, package, version):

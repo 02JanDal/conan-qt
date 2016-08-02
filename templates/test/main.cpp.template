@@ -1,0 +1,16 @@
+#include <@!default('test.app', 'QCoreApplication')!@>
+#include <@!default('test.include', test.object)!@>
+
+int main(int argc, char **argv)
+{
+    @!default('test.app', 'QCoreApplication')!@ app(argc, argv);
+
+    <!--(if exists('test.object'))-->
+    @!test.object!@ obj;
+    <!--(end)-->
+    <!--(if exists('test.function'))-->
+    @!test.function!@<!--(if not test.function.endswith(')'))-->()<!--(end)-->;
+    <!--(end)-->
+
+    return 0;
+}
