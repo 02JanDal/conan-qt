@@ -5,27 +5,39 @@ enable_testing()
 
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup()
-list(INSERT 1 CMAKE_PREFIX_PATH "${CONAN_QT5CORE_ROOT}/lib/cmake/" "${CONAN_@!name.upper()!@_ROOT}/lib/cmake/")
+list(INSERT 1 CMAKE_PREFIX_PATH
+    "${CONAN_QT5CORE_ROOT}/lib/cmake/"
+    "${CONAN_@!name.upper()!@_ROOT}/lib/cmake/"
+<!--(for dep in default('test.extradeps', []))-->
+    "${CONAN_@!dep.upper()!@_ROOT}/lib/cmake/"
+<!--(end)-->
+)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-<!--(if not default('isvirtual', False))-->
-
-find_package(Qt5 REQUIRED COMPONENTS @!name.replace('Qt5', '')!@)
+find_package(Qt5 REQUIRED COMPONENTS
+    @!default('test.cmakelib', name.replace('Qt5', ''))!@
+<!--(for dep in default('test.extradeps', []))-->
+    @!dep.replace('Qt5', '')!@
+<!--(end)-->
+)
 
 file(GLOB files *.cpp)
 foreach(file ${files})
     get_filename_component(name ${file} NAME_WE)
     add_executable(tst_${name} ${file})
-    target_link_libraries(tst_${name} Qt5::@!name.replace('Qt5', '')!@)
+    target_link_libraries(tst_${name}
+        Qt5::@!default('test.cmakelib', name.replace('Qt5', ''))!@
+<!--(for dep in default('test.extradeps', []))-->
+        Qt5::@!dep.replace('Qt5', '')!@
+<!--(end)-->
+    )
     add_test(NAME ${name} COMMAND tst_${name})
 endforeach()
 
 if(IS_DIRECTORY ${CMAKE_BINARY_DIR}/qmake_build)
     add_test(NAME qmake_test COMMAND ${CMAKE_BINARY_DIR}/qmake_build/qmake_test)
 endif()
-
-<!--(end)-->

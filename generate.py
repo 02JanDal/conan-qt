@@ -132,6 +132,9 @@ class Generator:
             if 'test' in data:
                 if 'function' in data['test'] or 'object' in data['test']:
                     self.__process_template('test/main.cpp', '{}/tst_{}.cpp'.format(testdir, data['name']), data)
+                if 'item' in data['test']:
+                    self.__process_template('test/main.qml', '{}/main.qml'.format(testdir), data)
+                    self.__process_template('test/qml_main.cpp', '{}/qml_main.cpp'.format(testdir), data)
 
         return True
 

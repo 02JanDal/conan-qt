@@ -1,0 +1,21 @@
+#include <@!default('test.app', 'QGuiApplication')!@>
+#include <QQuickView>
+#include <QQmlError>
+#include <QDir>
+#include <QFileInfo>
+
+int main(int argc, char **argv)
+{
+    @!default('test.app', 'QGuiApplication')!@ app(argc, argv);
+
+    QQuickView view;
+    view.setSource(QFileInfo(__FILE__).dir().absoluteFilePath("main.qml"));
+
+    app.processEvents();
+
+    if (view.errors().isEmpty()) {
+        return 0;
+    } else {
+        return 1;
+    }
+}

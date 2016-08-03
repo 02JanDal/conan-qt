@@ -8,13 +8,14 @@ class @!name!@TestConan(ConanFile):
     name = '@!name!@Test'
     version = '@!version!@'
     settings = 'os', 'compiler', 'build_type', 'arch'
-    requires = '@!name!@/@!version!@@{}/{}'.format(username, channel)
+    requires = '@!name!@/@!version!@@{}/{}'.format(username, channel)<!--(for dep in default('test.extradeps', []))-->, '@!dep!@/@!version!@@{}/{}'.format(username, channel)<!--(end)-->
     generators = 'cmake', 'qmake'
 
     def imports(self):
         self.copy(pattern='*.dll', dst='bin', src='bin')
         self.copy(pattern='*.dylib', dst='bin', src='lib')
         self.copy(pattern='qmake', dst='bin', src='bin')
+        self.copy(pattern='*', dst='bin', src='qml')
 
     def build(self):
         if os.path.isfile('../../test.pro') and False:

@@ -1,0 +1,7 @@
+import QtQuick 2
+import @!default('test.qmlimport', 'QtQuick 2')!@
+
+Item {
+    @!test.item!@ {
+    }
+}

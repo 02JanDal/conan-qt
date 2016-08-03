@@ -69,6 +69,7 @@ packages:
     includedirs: [QtMultimediaQuick_p]
     otherdirs: [qml/QtMultimedia, qml/QtAudioEngine]
     otherfiles: ['mkspecs/modules/qt_lib_qtmultimediaquicktools_private.pri']
+    test: {item: VideoOutput, qmlimport: 'QtMultimedia 5', cmakelib: Quick}
   - name: Qt5MultimediaWidgets
     <<: *inqteverything
     selfdependencies: [Qt5Multimedia, Qt5Widgets, Qt5OpenGL, Qt5Core, Qt5Gui, Qt5Network]
@@ -96,40 +97,46 @@ packages:
     otherdirs: ['qml/QtQuick.2', 'qml/QtQuick/Window.2', qml/QtQuick/XmlListModel]
     otherfiles: ['translations/qmlviewer_*.qm']
     executables: [qmlscene]
-    test: {object: QQuickView, app: QGuiApplication}
+    test: {object: QQuickView, app: QGuiApplication, item: Window, qmlimport: 'QtQuick.Window 2.2'}
   - name: Qt5QuickControls
     <<: *inqteverything
     selfdependencies: [Qt5QuickLayouts, Qt5Quick, Qt5Gui, Qt5Qml, Qt5Core, Qt5Network]
     otherdirs: ['qml/QtQuick/Controls']
     otherfiles: ['translations/qtquickcontrols_*.qm']
+    test: {item: Button, qmlimport: 'QtQuick.Controls 1.4', cmakelib: Quick}
   - name: Qt5QuickDialogs
     <<: *inqteverything
     selfdependencies: [Qt5QuickControls, Qt5Quick, Qt5Gui, Qt5Qml, Qt5Core, Qt5Network]
     otherdirs: ['qml/QtQuick/Dialogs', 'qml/QtQuick/PrivateWidgets']
+    test: {item: ColorDialog, qmlimport: 'QtQuick.Dialogs 1.2', cmakelib: Quick}
   - name: Qt5QuickLayouts
     <<: *inqteverything
     selfdependencies: [Qt5Quick, Qt5Gui, Qt5Qml, Qt5Core, Qt5Network]
     otherdirs: ['qml/QtQuick/Layouts']
+    test: {item: GridLayout, qmlimport: 'QtQuick.Layouts 1.3', cmakelib: Quick}
   - name: Qt5QuickExtras
     <<: *inqteverything
     selfdependencies: [Qt5QuickControls2, Qt5GraphicalEffects, Qt5Quick, Qt5Gui, Qt5Qml, Qt5Core, Qt5Network]
     otherdirs: ['qml/QtQuick/Extras']
+    test: {item: DelayButton, qmlimport : 'QtQuick.Extras 1.4', cmakelib: Quick}
   - name: Qt5QuickControls2
     <<: *inqteverything
     selfdependencies: [Qt5Quick, Qt5Gui, Qt5Qml, Qt5Core, Qt5Network]
     otherdirs: ['qml/QtQuick/Controls.2', 'qml/QtQuick/Window.2', 'qml/QtQuick/Templates.2']
     otherfiles: ['translations/qtquickcontrols2_*.qm', 'lib/*Qt5QuickTemplates2*', 'mkspecs/modules/qt_lib_quicktemplates2_private.pri']
-    test: {object: QQuickStyle, app: QGuiApplication}
+    test: {object: QQuickStyle, app: QGuiApplication, item: Button, qmlimport: 'QtQuick.Controls 2.0'}
   - name: Qt5QuickParticles
     <<: *inqteverything
     selfdependencies: [Qt5Quick, Qt5Gui, Qt5Qml, Qt5Network, Qt5Core]
     otherdirs: [qml/QtQuick/Particles.2]
+    test: {item: Emitter, qmlimport: 'QtQuick.Particles 2.0', cmakelib: Quick}
   - name: Qt5QuickTest
     <<: *inqteverything
     selfdependencies: [Qt5Test, Qt5Widgets, Qt5Quick, Qt5Gui, Qt5Qml, Qt5Network, Qt5Core]
     otherdirs: [qml/QtTest]
     executables: [qmltestrunner]
     mkspecname: qmltest
+    test: {item: SignalSpy, qmlimport: 'QtTest 1.0', cmakelib: Quick}
   - name: Qt5QuickWidgets
     <<: *inqteverything
     selfdependencies: [Qt5Widgets, Qt5Quick, Qt5Gui, Qt5Qml, Qt5Network, Qt5Core]
@@ -170,28 +177,28 @@ packages:
     otherdirs: [qml/QtBluetooth]
     otherfiles: ['translations/qtconnectivity_*.qm']
     executables: [sdpscanner]
-    test: {object: QBluetoothAddress}
+    test: {extradeps: [Qt5Quick], object: QBluetoothAddress, item: BluetoothDiscoveryModel, qmlimport: 'QtBluetooth 5'}
   - name: Qt5Gamepad
     <<: *inqteverything
     selfdependencies: [Qt5Core, Qt5Gui]
     otherdirs: [qml/QtGamepad]
-    test: {object: QGamepad}
+    test: {object: QGamepad, item: Gamepad, qmlimport: 'QtGamepad 1', extradeps: [Qt5Quick]}
   - name: Qt5Location
     <<: *inqteverything
     selfdependencies: [Qt5Positioning, Qt5Quick, Qt5Qml, Qt5Gui, Qt5Network, Qt5Core]
     otherdirs: [qml/QtLocation]
     otherfiles: ['translations/qtlocation_*.qm']
-    test: {object: QPlace}
+    test: {object: QPlace, item: Map, qmlimport: 'QtLocation 5'}
   - name: Qt5Nfc
     <<: *inqteverything
     otherdirs: [qml/QtNfc]
     selfdependencies: [Qt5Core, Qt5DBus]
     otherfiles: ['translations/qtconnectivity_*.qm']
-    test: {object: QNearFieldTarget}
+    test: {object: QNearFieldTarget, item: NdefFilter, qmlimport: 'QtNfc 5', extradeps: [Qt5Quick]}
   - name: Qt5Positioning
     <<: *inqteverything
     otherdirs: [qml/QtPositioning]
-    test: {object: QGeoCoordinate}
+    test: {object: QGeoCoordinate, item: Location, qmlimport: 'QtPositioning 5', extradeps: [Qt5Quick]}
   - name: Qt5PrintSupport
     <<: *inqteverything
     selfdependencies: [Qt5Widgets, Qt5Gui, Qt5Core]
@@ -199,7 +206,7 @@ packages:
   - name: Qt5Purchasing
     <<: *inqteverything
     otherdirs: [qml/QtPurchasing]
-    test: {object: QInAppStore}
+    test: {object: QInAppStore, item: Store, qmlimport: 'QtPurchasing 1', extradeps: [Qt5Quick]}
   - name: Qt5Script
     <<: *inqteverything
     otherfiles: ['translations/qtscript_*.qm']
@@ -213,11 +220,11 @@ packages:
     selfdependencies: [Qt5Core, Qt5Qml, Qt5Network]
     otherdirs: [qml/QtScxml]
     executables: [qscxmlc]
-    test: {object: QScxmlError}
+    test: {object: QScxmlError, item: StateMachineLoader, qmlimport: 'QtScxml 5.7', extradeps: [Qt5Quick]}
   - name: Qt5Sensors
     <<: *inqteverything
     otherdirs: [qml/QtSensors]
-    test: {object: QAccelerometer}
+    test: {object: QAccelerometer, item: Accelerometer, qmlimport: 'QtSensors 5', extradeps: [Qt5Quick]}
   - name: Qt5SerialBus
     <<: *inqteverything
     selfdependencies: [Qt5Core, Qt5SerialPort, Qt5Network]
@@ -239,7 +246,7 @@ packages:
     <<: *inqteverything
     selfdependencies: [Qt5Quick, Qt5Gui, Qt5Qml, Qt5Network, Qt5Core]
     otherdirs: [qml/QtWayland/Compositor]
-    test: {object: QWaylandXdgPopup}
+    test: {object: QWaylandXdgPopup, item: WaylandQuickItem, qmlimport: 'QtWayland.Compositor 1'}
   - name: Qt5WebChannel
     <<: *inqteverything
     selfdependencies: [Qt5Core, Qt5Qml, Qt5Network]
@@ -250,7 +257,7 @@ packages:
     selfdependencies: [Qt5Core, Qt5Network]
     otherdirs: [qml/QtWebSockets, qml/Qt/WebSockets]
     otherfiles: ['translations/qtwebsockets_*.qm']
-    test: {object: QWebSocket}
+    test: {object: QWebSocket, item: WebSocketServer, qmlimport: 'QtWebSockets 1', extradeps: [Qt5Quick]}
   - name: Qt5XcbQpa
     <<: *inqteverything
   - name: Qt5XmlPatterns
@@ -264,6 +271,7 @@ packages:
   - name: Qt5GraphicalEffects
     <<: *inqteverything
     otherdirs: [qml/QtGraphicalEffects]
+    test: {item: Glow, qmlimport: 'QtGraphicalEffects 1', cmakelib: Quick}
   - name: Qt5OpenGLExtensions
     <<: *inqteverything
     selfdependencies: [Qt5Gui, Qt5Core]
@@ -278,7 +286,7 @@ packages:
     otherdirs: [qml/QtCharts]
     meta:
       license: GPLv3 <https://doc.qt.io/qt-5/gpl.html>
-    test: {object: QChart, app: QGuiApplication}
+    test: {object: QChart, app: QApplication, item: ChartView, qmlimport: 'QtCharts 2', extradeps: [Qt5Quick]}
   - name: Qt5DataVisualization
     <<: *inqteverything
     selfdependencies: [Qt5Core, Qt5Gui]
@@ -286,13 +294,15 @@ packages:
     otherfiles: [doc/qtdatavis3d.qch]
     meta:
       license: GPLv3 <https://doc.qt.io/qt-5/gpl.html>
-    test: {object: Q3DCamera, app: QGuiApplication}
+    test: {object: Q3DCamera, app: QGuiApplication, item: Camera3D, qmlimport: 'QtDataVisualization 1', extradeps: [Qt5Quick]}
   - name: Qt5VirtualKeyboard
     <<: *inqteverything
     selfdependencies: [Qt5Core, Qt5Gui, Qt5Qml, Qt5Network, Qt5Quick, Qt5QuickLayouts]
     meta:
       license: GPLv3 <https://doc.qt.io/qt-5/gpl.html>
     otherdirs: [qml/QtQuick/VirtualKeyboard]
+    # TODO: fix QtVirtualKeyboard tests
+    #test: {item: EnterKey, qmlimport: 'QtQuick.VirtualKeyboard 2', cmakelib: Quick}
 
   # platform-specific extras
   - name: Qt5X11Extras
@@ -303,7 +313,7 @@ packages:
   - name: Qt5WinExtras
     <<: *inqteverything
     selfdependencies: [Qt5Core, Qt5Gui]
-    test: {object: QWinJumpList}
+    test: {object: QWinJumpList, item: JumpList, qmlimport: 'QtWinExtras 1'}
     os: [windows]
   - name: Qt5MacExtras
     <<: *inqteverything
