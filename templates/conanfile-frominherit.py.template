@@ -2,6 +2,7 @@ from conans import ConanFile
 import os
 import shutil
 import re
+import fnmatch
 
 channel = os.getenv("CONAN_CHANNEL", "testing")
 username = os.getenv("CONAN_USERNAME", "jandal")
@@ -59,12 +60,12 @@ cxxstd=auto
         self.copy('*', src='@!other!@', dst='tmp/@!other!@', root_package='@!src!@')
         <!--(end)-->
         <!--(for other in default('otherfiles', []))-->
-        self.copy(os.path.split('@!other!@')[1], src=os.path.split('@!other!@')[0], dst='tmp/' + os.path.split('@!other!@')[0])
+        self.copy(os.path.basename('@!other!@'), src=os.path.dirname('@!other!@'), dst='tmp/' + os.path.dirname('@!other!@'), root_package='@!src!@')
         <!--(end)-->
         self.copy('*', src='mkspecs/modules', dst='tmp/mkspecs/modules', root_package='@!src!@')
-        self.copy('*', src='plugins', dst='tmp/plugins')
-        self.copy('*', src='doc/@!name.replace('Qt5', 'Qt').lower()!@', dst='tmp/doc/@!name.replace('Qt5', 'Qt').lower()!@')
-        self.copy('@!name.replace('Qt5', 'Qt').lower()!@.qch', src='doc', dst='tmp/doc')
+        self.copy('*', src='plugins', dst='tmp/plugins', root_package='@!src!@')
+        self.copy('*', src='doc/@!name.replace('Qt5', 'Qt').lower()!@', dst='tmp/doc/@!name.replace('Qt5', 'Qt').lower()!@', root_package='@!src!@')
+        self.copy('@!name.replace('Qt5', 'Qt').lower()!@.qch', src='doc', dst='tmp/doc', root_package='@!src!@')
 
         extension = '.exe' if self.settings.os == 'Windows' else ''
         <!--(for exe in default('executables', []))-->
@@ -79,32 +80,36 @@ cxxstd=auto
             data = re.sub(pattern, replacement, data)
             with open(filename, 'w') as f:
                 f.write(data)
-# otherfiles shouldn't be removed
+        def is_in_otherfiles(file):
+            for other in @!default('otherfiles', [])!@:
+                if fnmatch.fnmatch(file, os.path.basename(other)):
+                    return True
+            return False
+
         shutil.copytree('tmp', 'pkg')
-        if os.path.isfile('pkg/mkspecs/modules/qt_lib_@!mkspecname!@.pri'):
+        if os.path.isdir('pkg/mkspecs/modules'):
             for file in os.listdir('pkg/mkspecs/modules'):
-                if not file.endswith('qt_lib_@!mkspecname!@.pri') and not file.endswith('qt_lib_@!mkspecname!@_private.pri'):
-                    os.remove('pkg/mkspecs/modules/' + file)
-                else:
+                if file.endswith('qt_lib_@!mkspecname!@.pri') or file.endswith('qt_lib_@!mkspecname!@_private.pri') or is_in_otherfiles(file):
                     replace_in('pkg/mkspecs/modules/' + file,
                                r'\$\$QT_MODULE_LIB_BASE',
                                '$$PWD/../../lib')
                     replace_in('pkg/mkspecs/modules/' + file,
                                r'\$\$QT_MODULE_INCLUDE_BASE',
                                '$$PWD/../../include')
+                else:
+                    os.remove('pkg/mkspecs/modules/' + file)
 
-            module_pri = self.__parse_simple_qmake('pkg/mkspecs/modules/qt_lib_@!mkspecname!@.pri')
-            if 'QT.@!mkspecname!@.plugin_types' in module_pri:
-                for plugin_type_dir in os.listdir('pkg/plugins'):
-                    if plugin_type_dir not in module_pri['QT.@!mkspecname!@.plugin_types']:
-                        shutil.rmtree('pkg/plugins/' + plugin_type_dir)
-        else:
-            shutil.rmtree('pkg/mkspecs/modules')
+            if os.path.isfile('pkg/mkspecs/modules/qt_lib_@!mkspecname!@.pri'):
+                module_pri = self.__parse_simple_qmake('pkg/mkspecs/modules/qt_lib_@!mkspecname!@.pri')
+                if 'QT.@!mkspecname!@.plugin_types' in module_pri:
+                    for plugin_type_dir in os.listdir('pkg/plugins'):
+                        if plugin_type_dir not in module_pri['QT.@!mkspecname!@.plugin_types']:
+                            shutil.rmtree('pkg/plugins/' + plugin_type_dir)
 
         qt5coreconfigextrasmkspecdir_file = 'pkg/lib/cmake/Qt5Core/Qt5CoreConfigExtrasMkspecDir.cmake'
         if os.path.isfile(qt5coreconfigextrasmkspecdir_file):
             replace_in(qt5coreconfigextrasmkspecdir_file,
-                       r'set\(_qt5_corelib_extra_includes ".*/Qt5Base/',
+                       r'set\(_qt5_corelib_extra_includes ".*/Qt5Everything/',
                        'set(_qt5_corelib_extra_includes "${CMAKE_CURRENT_LIST_DIR}/../../../')
 
         qt5config_file = 'pkg/lib/cmake/Qt5/Qt5Config.cmake'
@@ -113,10 +118,11 @@ cxxstd=auto
                        r'PATHS "\$\{_qt5_install_prefix\}" NO_DEFAULT_PATH',
                        'PATHS "${_qt5_install_prefix}"')
 
-        if os.path.isdir('pkg/lib/cmake/@!name!@'):
-            replace_in('pkg/lib/cmake/@!name!@/@!name!@Config.cmake',
-                       r'PATHS "\$\{CMAKE_CURRENT_LIST_DIR\}/.." NO_DEFAULT_PATH',
-                       'PATHS "${CMAKE_CURRENT_LIST_DIR}/.."')
+        if os.path.isdir('pkg/lib/cmake'):
+            for module in os.listdir('pkg/lib/cmake'):
+                replace_in('pkg/lib/cmake/{}/{}Config.cmake'.format(module, module),
+                           r'PATHS "\$\{CMAKE_CURRENT_LIST_DIR\}/.." NO_DEFAULT_PATH',
+                           'PATHS "${CMAKE_CURRENT_LIST_DIR}/.."')
 
     def package(self):
         self.copy('*', src='pkg', dst='.', keep_path=True)

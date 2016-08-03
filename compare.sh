@@ -35,4 +35,4 @@ done
 
 everything_dir=$CONAN_DATA/Qt5Everything/$PACKAGE_VERSION/$CONAN_USERNAME/$CONAN_CHANNEL/package
 everything_dir=`appendHash $everything_dir`
-diff -r $everything_dir $tmpdir/merged | sed s,$everything_dir,ORIGIN, | sed s,$tmpdir/merged,MERGED,
+diff --recursive --brief $everything_dir $tmpdir/merged | sed s,$everything_dir,ORIGIN, | sed s,$tmpdir/merged,MERGED,

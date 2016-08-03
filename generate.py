@@ -125,10 +125,13 @@ class Generator:
         else:
             self.__process_template('conanfile-fromsrc.py', dir + '/conanfile.py', data)
         self.__process_template('test/conanfile.py', testdir + '/conanfile.py', data)
-        self.__process_template('test/CMakeLists.txt', testdir + '/CMakeLists.txt', data)
 
-        if 'test' in data:
-            self.__process_template('test/main.cpp', '{}/tst_{}.cpp'.format(testdir, data['name']), data)
+        if not 'isvirtual' in data or not data['isvirtual']:
+            self.__process_template('test/CMakeLists.txt', testdir + '/CMakeLists.txt', data)
+
+            if 'test' in data:
+                if 'function' in data['test'] or 'object' in data['test']:
+                    self.__process_template('test/main.cpp', '{}/tst_{}.cpp'.format(testdir, data['name']), data)
 
         return True
 

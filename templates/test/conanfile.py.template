@@ -23,12 +23,12 @@ class @!name!@TestConan(ConanFile):
             self.run('{} ../../../'.format(os.path.join(os.getcwd(), 'bin', 'qmake')), cwd=qmake_build_dir)
             self.run('make', cwd=qmake_build_dir)
 
-        if len(os.listdir(self.conanfile_directory)) > 4:
+        if len(os.listdir(self.conanfile_directory)) > 4 and os.path.isfile('../../CMakeLists.txt'):
             cmake = CMake(self.settings)
             self.run('cmake {} {}'.format(self.conanfile_directory, cmake.command_line))
             self.run('cmake --build . {}'.format(cmake.build_config))
 
     def test(self):
-        if len(os.listdir(self.conanfile_directory)) > 4:
+        if len(os.listdir(self.conanfile_directory)) > 4 and os.path.isfile('../../CMakeLists.txt'):
             cmake = CMake(self.settings)
             self.run('cmake --build . --target test {}'.format(cmake.build_config))

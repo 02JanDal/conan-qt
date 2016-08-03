@@ -29,10 +29,10 @@ packages:
     versions: ['5.7.0']
     meta: *qt5meta
     src: Qt5Everything
-    executables: [qmake, moc, rcc, qlalr, qtpaths, qtplugininfo]
+    executables: [qmake, moc, rcc, qlalr, qtpaths, qtplugininfo, qtdiag]
     includedirs: [QtCore, QtZlib]
     otherdirs: [mkspecs, doc/global, doc/qmake]
-    otherfiles: ['doc/qmake.qch', 'translations/qtbase_*.qm', 'translations/qt_*.qm']
+    otherfiles: ['doc/qmake.qch', 'translations/qtbase_*.qm', 'translations/qt_*.qm', 'translations/qtconfig_*.qm']
     cmakedirs: [Qt5, Qt5Core, install]
   - name: Qt5Network
     <<: *inqteverything
@@ -40,6 +40,8 @@ packages:
   - name: Qt5Gui
     <<: *inqteverything
     test: {object: QWindow, app: QGuiApplication}
+    otherfiles: ['doc/qtimageformats.qch']
+    otherdirs: [doc/qtimageformats]
   - name: Qt5Widgets
     <<: *inqteverything
     selfdependencies: [Qt5Core, Qt5Gui]
@@ -65,8 +67,8 @@ packages:
     <<: *inqteverything
     selfdependencies: [Qt5Multimedia, Qt5Quick, Qt5Core, Qt5Gui, Qt5Network]
     includedirs: [QtMultimediaQuick_p]
-    otherdirs: [qml/QtMultimedia]
-    otherfiles: ['mkspec/modules/qt_lib_multimediaquicktools_private.pri']
+    otherdirs: [qml/QtMultimedia, qml/QtAudioEngine]
+    otherfiles: ['mkspecs/modules/qt_lib_qtmultimediaquicktools_private.pri']
   - name: Qt5MultimediaWidgets
     <<: *inqteverything
     selfdependencies: [Qt5Multimedia, Qt5Widgets, Qt5OpenGL, Qt5Core, Qt5Gui, Qt5Network]
@@ -76,25 +78,28 @@ packages:
   - name: Qt5Qml
     <<: *inqteverything
     selfdependencies: [Qt5Network, Qt5Core]
-    otherdirs: [qml/QtQml, qml/Qt/labs/folderlistmodel, qml/Qt/labs/settings]
-    otherfiles: ['translations/qtdeclarative_*.qm', 'qml/builtins.qmltypes']
+    otherdirs: [qml/QtQml, qml/Qt/labs/folderlistmodel, qml/Qt/labs/settings, include/QtPacketProtocol]
+    otherfiles:
+      - translations/qtdeclarative_*.qm
+      - translations/qtdeclarative_*.qm
+      - qml/builtins.qmltypes
+      - mkspec/modules/qt_lib_qmldebug_private.pri
+      - mkspec/modules/qt_lib_qmldevtools_private.pri
+      - mkspec/modules/qt_lib_packetprotocol_private.pri
+      - lib/*Qt5PacketProtocol*
     includedirs: [QtQml, QtQmlDebug, QtQmlDevTools]
     executables: [qml, qmleasing, qmlimportscanner, qmllint, qmlmin, qmlplugindump, qmlprofiler]
-    otherfiles: ['mkspec/modules/qt_lib_qmldebug_private.pri', 'mkspec/modules/qt_lib_qmldevtools_private.pri']
     test: {object: QQmlEngine}
   - name: Qt5Quick
     <<: *inqteverything
     selfdependencies: [Qt5Gui, Qt5Qml, Qt5Network, Qt5Core]
-    otherdirs: ['qml/QtQuick.2', qml/QtQuick/XmlListModel]
+    otherdirs: ['qml/QtQuick.2', 'qml/QtQuick/Window.2', qml/QtQuick/XmlListModel]
+    otherfiles: ['translations/qmlviewer_*.qm']
     executables: [qmlscene]
     test: {object: QQuickView, app: QGuiApplication}
-  - name: Qt5QuickWindows
-    <<: *inqteverything
-    selfdependencies: [Qt5Quick, Qt5Gui, Qt5Qml, Qt5Core, Qt5Network]
-    otherdirs: ['qml/QtQuick/Window.2']
   - name: Qt5QuickControls
     <<: *inqteverything
-    selfdependencies: [Qt5QuickWindows, Qt5QuickLayouts, Qt5Quick, Qt5Gui, Qt5Qml, Qt5Core, Qt5Network]
+    selfdependencies: [Qt5QuickLayouts, Qt5Quick, Qt5Gui, Qt5Qml, Qt5Core, Qt5Network]
     otherdirs: ['qml/QtQuick/Controls']
     otherfiles: ['translations/qtquickcontrols_*.qm']
   - name: Qt5QuickDialogs
@@ -107,23 +112,18 @@ packages:
     otherdirs: ['qml/QtQuick/Layouts']
   - name: Qt5QuickExtras
     <<: *inqteverything
-    selfdependencies: [Qt5GraphicalEffects, Qt5Quick, Qt5Gui, Qt5Qml, Qt5Core, Qt5Network]
+    selfdependencies: [Qt5QuickControls2, Qt5GraphicalEffects, Qt5Quick, Qt5Gui, Qt5Qml, Qt5Core, Qt5Network]
     otherdirs: ['qml/QtQuick/Extras']
   - name: Qt5QuickControls2
     <<: *inqteverything
-    selfdependencies: [Qt5QuickTemplates2, Qt5Quick, Qt5Gui, Qt5Qml, Qt5Core, Qt5Network, Qt5QuickTemplates2]
-    otherdirs: ['qml/QtQuick/Controls.2', 'qml/QtQuick/Window.2']
-    otherfiles: ['translations/qtquickcontrols2_*.qm']
-    # Qt Quick Controls 2 depend on Templates 2, but do not specify that. bug in Qt?
-    #test: {object: QQuickStyle, app: QGuiApplication}
+    selfdependencies: [Qt5Quick, Qt5Gui, Qt5Qml, Qt5Core, Qt5Network]
+    otherdirs: ['qml/QtQuick/Controls.2', 'qml/QtQuick/Window.2', 'qml/QtQuick/Templates.2']
+    otherfiles: ['translations/qtquickcontrols2_*.qm', 'lib/*Qt5QuickTemplates2*', 'mkspecs/modules/qt_lib_quicktemplates2_private.pri']
+    test: {object: QQuickStyle, app: QGuiApplication}
   - name: Qt5QuickParticles
     <<: *inqteverything
     selfdependencies: [Qt5Quick, Qt5Gui, Qt5Qml, Qt5Network, Qt5Core]
     otherdirs: [qml/QtQuick/Particles.2]
-  - name: Qt5QuickTemplates2
-    <<: *inqteverything
-    selfdependencies: [Qt5Quick, Qt5Gui, Qt5Qml, Qt5Network, Qt5Core]
-    otherdirs: [qml/QtQuick/Templates.2]
   - name: Qt5QuickTest
     <<: *inqteverything
     selfdependencies: [Qt5Test, Qt5Widgets, Qt5Quick, Qt5Gui, Qt5Qml, Qt5Network, Qt5Core]
@@ -138,6 +138,20 @@ packages:
     <<: *inqteverything
     selfdependencies: [Qt5Sql, Qt5Gui, Qt5Qml, Qt5Core, Qt5Network]
     otherdirs: ['qml/QtQuick/LocalStorage']
+
+  - name: Qt5Base
+    <<: *inqteverything
+    selfdependencies: [Qt5Concurrent, Qt5Core, Qt5DBus, Qt5Gui, Qt5Network, Qt5OpenGL, Qt5OpenGLExtensions, Qt5PrintSupport, Qt5Sql, Qt5Test, Qt5Widgets, Qt5Xml]
+    otherfiles:
+      - lib/*Qt5Egl*
+      - lib/*Qt5PlatformSupport*
+      - lib/*Qt5*Qpa*
+      - lib/*Qt5Bootstrap*
+      - mkspecs/modules/qt_lib_bootstrap_private.pri
+      - mkspecs/modules/qt_lib_egl*_private.pri
+      - mkspecs/modules/qt_lib_platformsupport_private.pri
+      - mkspecs/modules/qt_lib_*qpa*_private.pri
+    otherdirs: [include/QtPlatformSupport]
 
   # Qt Add-ons
   - name: Qt5Concurrent
@@ -250,6 +264,12 @@ packages:
   - name: Qt5GraphicalEffects
     <<: *inqteverything
     otherdirs: [qml/QtGraphicalEffects]
+  - name: Qt5OpenGLExtensions
+    <<: *inqteverything
+    selfdependencies: [Qt5Gui, Qt5Core]
+  - name: Qt5PlatformHeaders
+    <<: *inqteverything
+    selfdependencies: [Qt5Gui, Qt5Core]
 
   # GPLv3-only modules
   - name: Qt5Charts
@@ -301,7 +321,7 @@ packages:
   - name: Qt5Doc
     <<: *inqteverything
     executables: [qdoc]
-    otherdirs: [doc/qdoc]
+    otherdirs: [doc/qdoc, doc/qtdoc]
     otherfiles: ['doc/qdoc.qch']
     selfdependencies: [Qt5Help]
   - name: Qt5CLucene
@@ -315,13 +335,13 @@ packages:
   - name: Qt5Designer
     <<: *inqteverything
     executables: [designer]
-    otherfiles: ['lib/*Qt5DesignerComponents.*', 'translations/designer_*.qm']
+    otherfiles: ['lib/*Qt5DesignerComponents.*', 'translations/designer_*.qm', 'mkspec/modules/qt_lib_designercomponents_private.pri']
     includedirs: [QtDesigner, QtDesignerComponents]
     selfdependencies: [Qt5Xml, Qt5Widgets, Qt5Gui, Qt5Core]
-    otherfiles: ['mkspec/modules/qt_lib_designercomponents_private.pri']
   - name: Qt5UiTools
     <<: *inqteverything
     includedirs: [QtUiPlugin, QtUiTools]
-    otherfiles: ['doc/qtuitools.qch']
+    otherfiles: ['doc/qtuitools.qch', 'mkspecs/modules/qt_lib_uiplugin.pri']
     otherdirs: [doc/qtuitools]
+    cmakedirs: [Qt5UiPlugin, Qt5UiTools]
     selfdependencies: [Qt5Widgets, Qt5Gui, Qt5Core]
